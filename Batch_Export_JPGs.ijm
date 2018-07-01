@@ -9,8 +9,8 @@ for(i=0;i<indirlist.length;i++){
 	name=File.nameWithoutExtension;
 	print("Processing: " + name);
 
-	//run("Rotate... ", "angle=180 grid=1 interpolation=Bilinear stack");
-	//run("Z Project...", "projection=[Max Intensity]");
+	run("Rotate... ", "angle=180 grid=1 interpolation=Bilinear stack");
+	run("Z Project...", "projection=[Max Intensity]");
 	rename("A");
 	run("Split Channels");
 
@@ -22,15 +22,15 @@ for(i=0;i<indirlist.length;i++){
 	selectWindow("C2-A");
 	run("Grays");
 	run("Enhance Contrast", "saturated=0.35");
-	saveAs("JPEG", outdir+name+"_Cas9-eGFP");
+	saveAs("JPEG", outdir+name+"_TCFLef-H2BRFP");
 	selectWindow("C3-A");
 	run("Grays");
 	run("Enhance Contrast", "saturated=0.35");
+	saveAs("JPEG", outdir+name+"_pCIG");
+	selectWindow("C4-A");
+	run("Grays");
+	run("Enhance Contrast", "saturated=0.15");
 	saveAs("JPEG", outdir+name+"_Laminin");
-	//selectWindow("C4-A");
-	//run("Grays");
-	//run("Enhance Contrast", "saturated=0.15");
-	//saveAs("JPEG", outdir+name+"_V5Smurf1");
 	//selectWindow("C5-A");
 	//run("Grays");
 	//run("Enhance Contrast", "saturated=0.05");
@@ -42,7 +42,7 @@ for(i=0;i<indirlist.length;i++){
 	//C4 = gray, C5 = cyan, C6 = magenta, 
 	//C7 = yellow
 	
-	run("Merge Channels...", "c2=C3-A c6=C1-A create");
+	run("Merge Channels...", "c2=C3-A c1=C2-A c6=C1-A create");
 	
 	//rename("A");
 	//selectWindow("A");
