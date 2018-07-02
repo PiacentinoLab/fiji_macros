@@ -27,29 +27,29 @@ if (isOpen("ROI Manager")) {
 waitForUser("Draw ROI 0 (Background Channel 1), then press ok");
 roiManager("Add");
 roiManager("Select",0);
-roiManager("Rename","back1a");
+roiManager("Rename","background");
 roiManager("Show All");
 waitForUser("Draw ROI 1 (Background Channel 1), then press ok");
 roiManager("Add");
 roiManager("Select",1);
-roiManager("Rename","back1b");
+roiManager("Rename","background");
 waitForUser("Draw ROI 2 (Background Channel 1), then press ok");
 roiManager("Add");
 roiManager("Select",2);
-roiManager("Rename","back1c");
+roiManager("Rename","background");
 
 waitForUser("Draw ROI 3 (Background Channel 2), then press ok");
 roiManager("Add");
 roiManager("Select",3);
-roiManager("Rename","back2a");
+roiManager("Rename","background");
 waitForUser("Draw ROI 4 (Background Channel 2), then press ok");
 roiManager("Add");
 roiManager("Select",4);
-roiManager("Rename","back2b");
+roiManager("Rename","background");
 waitForUser("Draw ROI 5 (Background Channel 2), then press ok");
 roiManager("Add");
 roiManager("Select",5);
-roiManager("Rename","back2c");
+roiManager("Rename","background");
 
 waitForUser("Draw ROI 6 (Experimental ROI), then press ok");
 roiManager("Add");
