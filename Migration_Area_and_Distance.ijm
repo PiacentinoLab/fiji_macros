@@ -71,5 +71,34 @@ roiManager("Select",9);
 roiManager("Rename","Exp4");
 
 //Save out ROIs
+waitForUser("Choose a directory to save ROIs, then press ok");
 dir = getDirectory("Choose a directory to save ROI sets.");
 roiManager("Save", dir+name+".zip");
+
+roiManager("Show All");
+roiManager("Select", 0);
+run("Measure");
+roiManager("Select", 1);
+run("Measure");
+roiManager("Select", 2);
+run("Measure");
+roiManager("Select", 3);
+run("Measure");
+roiManager("Select", 4);
+run("Measure");
+roiManager("Select", 5);
+run("Measure");
+roiManager("Select", 6);
+run("Measure");
+roiManager("Select", 7);
+run("Measure");
+roiManager("Select", 8);
+run("Measure");
+roiManager("Select", 9);
+run("Measure");
+
+
+//Save out Measurements as csv
+waitForUser("Choose a directory to save measurements, then press ok");
+dir = getDirectory("Choose a directory to save measurement results.");
+saveAs("Results", dir+name+".csv");
