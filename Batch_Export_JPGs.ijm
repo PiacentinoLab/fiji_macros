@@ -38,9 +38,9 @@ for(i=0;i<indirlist.length;i++){
 
 
 //merge channels
-	//C1 = red, C2 = green, C3 = blue, 
-	//C4 = gray, C5 = cyan, C6 = magenta, 
-	//C7 = yellow
+	//c1 = red, c2 = green, c3 = blue, 
+	//c4 = gray, c5 = cyan, c6 = magenta, 
+	//c7 = yellow
 	
 	run("Merge Channels...", "c2=C4-A c5=C3-A c6=C1-A create");
 	
