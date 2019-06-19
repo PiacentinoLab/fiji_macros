@@ -9,9 +9,9 @@ for(i=0;i<indirlist.length;i++){
 	name=File.nameWithoutExtension;
 	print("Processing: " + name);
 
-	//run("Rotate... ", "angle=180 grid=1 interpolation=Bilinear stack");
-	run("Z Project...", "projection=[Max Intensity]");
-	run("Median...", "radius=2 stack");
+	run("Rotate... ", "angle=180 grid=1 interpolation=Bilinear stack");
+	//run("Z Project...", "projection=[Max Intensity]");
+	//run("Median...", "radius=2 stack");
 	rename("A");
 	run("Split Channels");
 
@@ -19,19 +19,19 @@ for(i=0;i<indirlist.length;i++){
 	selectWindow("C1-A");
 	run("Grays");
 	run("Enhance Contrast", "saturated=0.35");
-	saveAs("JPEG", outdir+name+"_Cad6B");
+	saveAs("JPEG", outdir+name+"_Pax7");
 	selectWindow("C2-A");
 	run("Grays");
 	run("Enhance Contrast", "saturated=0.35");
-	saveAs("JPEG", outdir+name+"_pCIG");
+	saveAs("JPEG", outdir+name+"_GFP");
 	selectWindow("C3-A");
 	run("Grays");
-	run("Enhance Contrast", "saturated=0.15");
-	saveAs("JPEG", outdir+name+"_Sox9");
-	//selectWindow("C4-A");
-	//run("Grays");
-	//run("Enhance Contrast", "saturated=0.15");
-	//saveAs("JPEG", outdir+name+"_Sox9");
+	run("Enhance Contrast", "saturated=0.35");
+	saveAs("JPEG", outdir+name+"_FITC");
+	selectWindow("C4-A");
+	run("Grays");
+	run("Enhance Contrast", "saturated=0.35");
+	saveAs("JPEG", outdir+name+"_Laminin");
 	//selectWindow("C5-A");
 	//run("Grays");
 	//run("Enhance Contrast", "saturated=0.05");
@@ -43,12 +43,12 @@ for(i=0;i<indirlist.length;i++){
 	//c4 = gray, c5 = cyan, c6 = magenta, 
 	//c7 = yellow
 	
-	run("Merge Channels...", "c5=C1-A c6=C3-A create");
+	//run("Merge Channels...", "c2=C1-A c6=C2-A create");
 	
 	//rename("A");
 	//selectWindow("A");
-	run("RGB Color");
-	saveAs("JPEG", outdir+name+"_composite");
+	//run("RGB Color");
+	//saveAs("JPEG", outdir+name+"_composite");
 	run("Close All");
 
 }
