@@ -9,7 +9,7 @@ for(i=0;i<indirlist.length;i++){
 	name=File.nameWithoutExtension;
 	print("Processing: " + name);
 	run("Z Project...", "projection=[Max Intensity]");
-//	run("Flip Horizontally", "stack");
+	run("Flip Horizontally", "stack");
 	rename("A");
 	run("Enhance Contrast", "saturated=0.35");
 	run("Magenta");
