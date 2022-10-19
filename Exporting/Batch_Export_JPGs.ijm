@@ -10,33 +10,33 @@ for(i=0;i<indirlist.length;i++){
 	print("Processing: " + name);
 
 //	run("Rotate... ", "angle=180 grid=1 interpolation=Bilinear stack");
-	run("Median...", "radius=1 stack");
-//	run("Z Project...", "projection=[Max Intensity]");
+	run("Z Project...", "projection=[Max Intensity]");
+//	run("Median...", "radius=1 stack");
 	
 	// NOTE: Imaging embryos on the LSM880 results in them being reflected 
 	// with experimental side on left and control on right. Correcting that here.
 //	run("Flip Vertically", "stack");
 
 	rename("A");
-//	run("Split Channels");
+	run("Split Channels");
 
 	//export each channel
-//	selectWindow("C1-A");
-//	run("Grays");
-//	run("Enhance Contrast", "saturated=0.10");
-//	saveAs("JPEG", outdir+name+"_GPI-eGFP");
+	selectWindow("C1-A");
+	run("Grays");
+	run("Enhance Contrast", "saturated=0.10");
+	saveAs("JPEG", outdir+name+"_DIC");
 //	selectWindow("C2-A");
 //	run("Grays");
 //	run("Enhance Contrast", "saturated=0.25");
 //	saveAs("JPEG", outdir+name+"_RFP");
-//	selectWindow("C3-A");
-//	run("Grays");
-//	run("Enhance Contrast", "saturated=0.25");
-//	saveAs("JPEG", outdir+name+"_Phase");
-//	selectWindow("C4-A");
-//	run("Grays");
-//	run("Enhance Contrast", "saturated=0.35");
-//	saveAs("JPEG", outdir+name+"_DAPI");
+	selectWindow("C3-A");
+	run("Grays");
+	run("Enhance Contrast", "saturated=0.25");
+	saveAs("JPEG", outdir+name+"_H2BRFP");
+	selectWindow("C4-A");
+	run("Grays");
+	run("Enhance Contrast", "saturated=0.35");
+	saveAs("JPEG", outdir+name+"_GFPChannel");
 //	selectWindow("C5-A");
 //	run("Grays");
 //	run("Enhance Contrast", "saturated=0.05");
@@ -48,19 +48,19 @@ for(i=0;i<indirlist.length;i++){
 	//c4 = gray, c5 = cyan, c6 = magenta, 
 	//c7 = yellow
 	
-//	run("Merge Channels...", "c5=C3-A c6=C1-A create");
+	run("Merge Channels...", "c5=C4-A c6=C3-A create");
 
 //display overlay
-	Stack.setDisplayMode("composite");
-	Stack.setChannel(1);
-	run("Green");
-	run("Enhance Contrast", "saturated=0.35");
-	Stack.setChannel(2);
-	run("Magenta");
-	run("Enhance Contrast", "saturated=0.35");
-	Stack.setChannel(3);
-	run("Grays");
-	run("Enhance Contrast", "saturated=0.15");
+//	Stack.setDisplayMode("composite");
+//	Stack.setChannel(1);
+//	run("Green");
+//	run("Enhance Contrast", "saturated=0.35");
+//	Stack.setChannel(2);
+//	run("Magenta");
+//	run("Enhance Contrast", "saturated=0.35");
+//	Stack.setChannel(3);
+//	run("Grays");
+//	run("Enhance Contrast", "saturated=0.15");
 	
 //	rename("A");
 //	selectWindow("A");
