@@ -1,0 +1,75 @@
+---
+title: "Enh3 Intensity Analysis"
+input: .csv files with measured ROI intensity from Fiji
+output: .csv file with normalized values
+---
+
+Define parameters and import modules for this analysis 
+```{r}
+# Necessary input parameters
+data_path = 'raw_source_data/'
+measure_channel <- 'Enh3GFP'
+norm_channel <- 'H2BRFP'
+output_name <- 'Sox9MO_Enh3Intensity_results.csv'
+
+# Import modules
+library(dplyr)
+library(tidyverse)
+library(tidyr)
+```
+
+Navigate to raw data from Fiji and import the raw measurment files
+```{r}
+# Loop through files in source data to pull in Fiji measurements
+file_list = list.files(path = data_path)     # Determine files to loop through
+
+for (file_ in file_list) {
+  if (file_ == file_list[1]){   # Pull in first file to initialize df
+    df <- read.csv(file.path(data_path, file_), header=TRUE, row.names=1)
+    df['File'] <- file_
+  }
+  else {                       # Pull in the rest of the files and concatenate
+    temp_data <- read.csv(file.path(data_path, file_), header=TRUE, row.names=1)
+    temp_data['File'] <- file_
+    df <- rbind(df, temp_data)  # Concatenates temp_data with df
+  }
+}
+head(df,5)
+```
+
+Parse out the relevant metadata from the file name and Label columns, then discard unnecessary columns
+```{r}
+df <- df %>% separate(Label, c('Channel', 'ROI'), ":")
+df <- df %>% separate(File, c('Date','Treatment',
+                              'Stains','Embryo','Somites','Mag','Type'), "_")
+df <- unite(df, Emb_ID, c('Date','Treatment','Embryo'), sep = '_')
+df <- select(df, -c('Min','Max','RawIntDen','Stains','Mag','Type')) # Drop unnecessary cols
+
+```
+
+Normalization and analysis pipeline:
+  1: Channel of interest / Electroporation normalization channel
+  2: Explicit value / mean of the control dataset (normalizes the control dataset around 1)
+  3: Generate ratio of Experimental / Control values
+```{r}
+# Parse out and normalize data
+data <- df[df$Channel==measure_channel & df$ROI!='Background',]
+data['NormIntDen'] <- (data['IntDen'] / df[df$Channel==norm_channel 
+                                    & df$ROI!='Background',]['IntDen'])
+data <- select(data, -c('Area', 'Mean', 'IntDen')) # Drop unnecessary cols
+data <- data %>% pivot_wider(names_from='ROI', values_from='NormIntDen')
+data <- data %>% dplyr::rename('Cntl'='CntlArea', 'Expt'='ExptArea')
+
+# Compute mean of control dataset and normalize everything to that
+control_mean <- mean(data$Cntl)
+data$Cntl <- data$Cntl/control_mean
+data$Expt <- data$Expt/control_mean
+# Determine the ratio of Experimental/Control IntDen
+data$Ratio <- data$Expt/data$Cntl
+head(data,5)
+```
+
+Save out resulting data
+```{r}
+write.csv(data, file=paste(Sys.Date(), output_name, sep = "_", collapse = NULL))
+```

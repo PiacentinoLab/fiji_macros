@@ -10,7 +10,7 @@ for(i=0;i<indirlist.length;i++){
 	print("Processing: " + name);
 
 //	run("Rotate... ", "angle=180 grid=1 interpolation=Bilinear stack");
-	run("Z Project...", "projection=[Max Intensity]");
+//	run("Z Project...", "projection=[Max Intensity]");
 //	run("Median...", "radius=1 stack");
 	
 	// NOTE: Imaging embryos on the LSM880 results in them being reflected 
@@ -24,23 +24,24 @@ for(i=0;i<indirlist.length;i++){
 	selectWindow("C1-A");
 	run("Grays");
 	run("Enhance Contrast", "saturated=0.10");
-	saveAs("JPEG", outdir+name+"_DIC");
-//	selectWindow("C2-A");
-//	run("Grays");
+	saveAs("JPEG", outdir+name+"_H2BRFP");
+	selectWindow("C2-A");
+	run("Grays");
 //	run("Enhance Contrast", "saturated=0.25");
-//	saveAs("JPEG", outdir+name+"_RFP");
+	saveAs("JPEG", outdir+name+"_TPMT");
 	selectWindow("C3-A");
 	run("Grays");
-	run("Enhance Contrast", "saturated=0.25");
-	saveAs("JPEG", outdir+name+"_H2BRFP");
+	run("Enhance Contrast", "saturated=0.10");
+	saveAs("JPEG", outdir+name+"_citrine");
 	selectWindow("C4-A");
 	run("Grays");
-	run("Enhance Contrast", "saturated=0.35");
-	saveAs("JPEG", outdir+name+"_GFPChannel");
-//	selectWindow("C5-A");
-//	run("Grays");
-//	run("Enhance Contrast", "saturated=0.05");
-//	saveAs("JPEG", outdir+name+"_DIC");
+	run("Enhance Contrast", "saturated=0.10");
+	saveAs("JPEG", outdir+name+"_DAPI");
+	selectWindow("C5-A");
+	run("Grays");
+	run("Enhance Contrast", "saturated=0.10");
+	setMinAndMax(50, 15000);
+	saveAs("JPEG", outdir+name+"_smpd3");
 
 
 //merge channels
@@ -48,7 +49,7 @@ for(i=0;i<indirlist.length;i++){
 	//c4 = gray, c5 = cyan, c6 = magenta, 
 	//c7 = yellow
 	
-	run("Merge Channels...", "c5=C4-A c6=C3-A create");
+	run("Merge Channels...", "c2=C5-A c6=C1-A create");
 
 //display overlay
 //	Stack.setDisplayMode("composite");
