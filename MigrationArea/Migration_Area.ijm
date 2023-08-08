@@ -1,7 +1,8 @@
 //learn file name, prepare file and Fiji for analysis
 name=File.nameWithoutExtension;
-rename("A");
+run("Set Measurements...", "area mean integrated redirect=None decimal=3");
 //run("Z Project...", "projection=[Max Intensity]");
+rename("A");
 
 //Close unnecessary windows from last analysis
 if (isOpen("Results")) { 
