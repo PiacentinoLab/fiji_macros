@@ -1,0 +1,142 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: console
+---
+
+# Working on
+
+### *1. Make loops to normalize within given treatments, doses, and/or stages*
+
+### *2. Building in statistic framework*
+
+------------------------------------------------------------------------
+
+# Initialization and Import
+
+Define experimental parameters and input/output information
+
+```{r}
+# Define raw data directory
+data_path = 'csvs/'
+# Define experiment output name
+output_name <- 'ApoD_OE_MigrationArea_results.csv'
+
+# Import modules
+library(dplyr)            # needed for %>%
+library(tidyverse)
+library(tidyr)             # contains "separate" function
+library(ggplot2)
+library(GGally)
+```
+
+Navigate to raw data from Fiji and import the raw measurement files
+
+```{r}
+# Loop through files in source data to pull in Fiji measurements
+file_list = list.files(path = data_path)     # Determine files to loop through
+
+for (file_ in file_list) {
+  if (file_ == file_list[1]){   # Pull in first file to initialize df
+    df_raw <- read.csv(file.path(data_path, file_), header=TRUE, row.names=1)
+    df_raw['File'] <- file_
+  }
+  else {                       # Pull in the rest of the files and concatenate
+    temp_data <- read.csv(file.path(data_path, file_), header=TRUE, row.names=1)
+    temp_data['File'] <- file_
+    df_raw <- rbind(df_raw, temp_data)  # Concatenates temp_data with df
+  }
+}
+head(df_raw)
+```
+
+Parse out the relevant metadata from the file name and Label columns, then discard unnecessary columns
+
+```{r}
+df <- df_raw %>% separate(Label, c('del1', 'ROI', 'del2'), ":")
+df <- df %>% separate(File, c('Date','Treatment',
+                              'Stains','Embryo','Somites','Mag','Type'), "_")
+df <- df %>% separate(Treatment, c('Gene', 'Dose'), ";")
+
+df <- unite(df, Emb_ID, c('Date','Gene','Dose','Embryo'), sep = '_', remove = FALSE)
+df <- select(df, -c('del1','del2','Mean', 'IntDen', 'RawIntDen',
+                    'Stains','Mag','Type')) # Drop unnecessary cols
+df
+```
+
+# Normalize and Analyze
+
+Analysis steps:
+
+1.  Pivot to position Control and Experimental areas adjacent one another
+
+2.  Normalize to control dataset = Explicit value / mean of the control dataset (defines the mean of the control dataset as 1) - USED FOR PARALLEL COORDINATE PLOTS
+
+3.  Generate ratio of Experimental / Control values - USED FOR BOX AND WHISKER/JITTER PLOTS
+
+```{r}
+# Pivot table
+data <- df %>% pivot_wider(names_from = 'ROI', values_from = 'Area')
+
+# Normalize each value to the mean of the Control dataset
+data['NormCntlArea'] <- data['CntlArea'] / mean(data$CntlArea)
+data['NormExptArea'] <- data['ExptArea'] / mean(data$CntlArea)
+
+# Determine the ratio of Experimental/Control IntDen
+data['Ratio'] <- data['ExptArea'] / data['CntlArea']
+
+data
+```
+
+Save out resulting data
+
+```{r}
+date <- Sys.Date()
+date <- format(date, format="%Y%m%d")
+write.csv(data, file=paste(date, output_name, sep = "_", collapse = NULL))
+```
+
+# Plot Data
+
+#### Parallel Coordinate Plots:
+
+Good for experiments with paired data (i.e. bilateral electroporations)
+
+```{r}
+# Parallel coordinate plot
+p <-ggparcoord(data, columns= 9:10,  showPoints=TRUE, 
+      scale='globalminmax',
+      groupColumn = 4,
+      ) +
+      labs(x ='Treatment', 
+          y = 'Migration Area \n normalized to control') +
+      scale_x_discrete(labels= c("NormCntlArea"="Uninjected",
+                                 "NormExptArea"=" pCI \n ApoD")) +
+      ylim(0,2) +
+      theme_classic() +
+      theme(axis.text = element_text(size=10, color = "black"))
+p
+```
+
+#### Box and whisker/Jitter Plot
+
+Good for experiments with categorical data or comparing ratios
+
+```{r}
+# Box and whiskers with strip plot for ratios
+q <-ggplot(data, aes(x=Gene, y=Ratio)) +
+      geom_boxplot() +
+      geom_dotplot(binaxis='y', stackdir='center', dotsize=0.7) +
+      labs(x ='Treatment', 
+          y = 'Norm. Migration Area') +
+      scale_x_discrete(labels= c("pCIApoD"="pCI \n ApoD")) +
+      ylim(0,1.25)  +
+      geom_hline(yintercept=1, linetype="dashed", color = "red") +
+      theme_classic() +
+      theme(axis.text = element_text(size=10, color = "black"))
+    
+q
+```

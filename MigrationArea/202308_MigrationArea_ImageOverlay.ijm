@@ -1,7 +1,7 @@
 //learn file name, prepare file and Fiji for analysis
 name=File.nameWithoutExtension;
-run("Set Measurements...", "area mean integrated redirect=None decimal=3");
-//run("Z Project...", "projection=[Max Intensity]");
+run("Set Measurements...", "area mean integrated display redirect=None decimal=3");
+run("Z Project...", "projection=[Max Intensity]");
 rename("A");
 
 //Close unnecessary windows from last analysis
@@ -41,9 +41,9 @@ roiManager("Select",1);
 roiManager("Rename","ExptArea");
 
 //Save out ROIs
-waitForUser("Choose a directory to save ROIs, then press ok");
-dir = getDirectory("Choose a directory to save ROI sets.");
-roiManager("Save", dir+name+".zip");
+waitForUser("Choose a directory to save ROIs and overlay images, then press ok");
+roi_dir = getDirectory("Choose a directory to save ROI sets.");
+roiManager("Save", roi_dir+name+".zip");
 
 //Measure areas
 roiManager("Show All");
@@ -54,5 +54,11 @@ run("Measure");
 
 //Save out Measurements as csv
 waitForUser("Choose a directory to save measurements, then press ok");
-dir = getDirectory("Choose a directory to save measurement results.");
-saveAs("Results", dir+name+".csv");
+csv_dir = getDirectory("Choose a directory to save measurement results.");
+saveAs("Results", csv_dir+name+".csv");
+
+//Save out ROI/Image Overlay
+selectWindow("A");
+roiManager("Show All");
+run("Flatten", "slice");
+saveAs("JPEG", roi_dir+name+"_ROIOverlay.jpg");
