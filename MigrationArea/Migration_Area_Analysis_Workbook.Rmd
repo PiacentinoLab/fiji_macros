@@ -13,6 +13,8 @@ editor_options:
 
 ### *2. Building in statistic framework*
 
+3.  Practice using R to analyze migration area
+
 ------------------------------------------------------------------------
 
 # Initialization and Import
@@ -21,9 +23,9 @@ Define experimental parameters and input/output information
 
 ```{r}
 # Define raw data directory
-data_path = 'csvs/'
+data_path = 'test_data/'
 # Define experiment output name
-output_name <- 'ApoD_OE_MigrationArea_results.csv'
+output_name <- 'Sox9MO_MigrationArea_results.csv'
 
 # Import modules
 library(dplyr)            # needed for %>%
@@ -31,6 +33,9 @@ library(tidyverse)
 library(tidyr)             # contains "separate" function
 library(ggplot2)
 library(GGally)
+# install.packages("ggbeeswarm")
+library(ggbeeswarm)
+
 ```
 
 Navigate to raw data from Fiji and import the raw measurement files
@@ -56,15 +61,15 @@ head(df_raw)
 Parse out the relevant metadata from the file name and Label columns, then discard unnecessary columns
 
 ```{r}
-df <- df_raw %>% separate(Label, c('del1', 'ROI', 'del2'), ":")
+df <- df_raw %>% separate(Label, c('Channel', 'ROI'), ":")
 df <- df %>% separate(File, c('Date','Treatment',
                               'Stains','Embryo','Somites','Mag','Type'), "_")
-df <- df %>% separate(Treatment, c('Gene', 'Dose'), ";")
+#df <- df %>% separate(Treatment, c('Gene', 'Dose'), ";")
 
-df <- unite(df, Emb_ID, c('Date','Gene','Dose','Embryo'), sep = '_', remove = FALSE)
-df <- select(df, -c('del1','del2','Mean', 'IntDen', 'RawIntDen',
+df <- unite(df, Emb_ID, c('Date','Treatment','Embryo'), sep = '_', remove = FALSE)
+df <- select(df, -c('Mean','Min','Max', 'IntDen', 'RawIntDen',
                     'Stains','Mag','Type')) # Drop unnecessary cols
-df
+head(df)
 ```
 
 # Normalize and Analyze
@@ -78,8 +83,12 @@ Analysis steps:
 3.  Generate ratio of Experimental / Control values - USED FOR BOX AND WHISKER/JITTER PLOTS
 
 ```{r}
+# Get rid of unnecessary ROIs and Channels
+data <- df[!(df$ROI=="Background"),]
+data <- data[(data$Channel=="Pax7"),]
+
 # Pivot table
-data <- df %>% pivot_wider(names_from = 'ROI', values_from = 'Area')
+data <- data %>% pivot_wider(names_from = 'ROI', values_from = 'Area')
 
 # Normalize each value to the mean of the Control dataset
 data['NormCntlArea'] <- data['CntlArea'] / mean(data$CntlArea)
@@ -88,7 +97,7 @@ data['NormExptArea'] <- data['ExptArea'] / mean(data$CntlArea)
 # Determine the ratio of Experimental/Control IntDen
 data['Ratio'] <- data['ExptArea'] / data['CntlArea']
 
-data
+head(data)
 ```
 
 Save out resulting data
@@ -113,11 +122,12 @@ p <-ggparcoord(data, columns= 9:10,  showPoints=TRUE,
       ) +
       labs(x ='Treatment', 
           y = 'Migration Area \n normalized to control') +
-      scale_x_discrete(labels= c("NormCntlArea"="Uninjected",
-                                 "NormExptArea"=" pCI \n ApoD")) +
+      scale_x_discrete(labels= c("NormCntlArea"="Control MO",
+                                 "NormExptArea"="Sox9 MO")) +
       ylim(0,2) +
       theme_classic() +
-      theme(axis.text = element_text(size=10, color = "black"))
+      theme(axis.text = element_text(size=10, color = "black")) +
+      theme(legend.position = "none")
 p
 ```
 
@@ -127,12 +137,12 @@ Good for experiments with categorical data or comparing ratios
 
 ```{r}
 # Box and whiskers with strip plot for ratios
-q <-ggplot(data, aes(x=Gene, y=Ratio)) +
+q <-ggplot(data, aes(x=Treatment, y=Ratio)) +
       geom_boxplot() +
-      geom_dotplot(binaxis='y', stackdir='center', dotsize=0.7) +
+      geom_beeswarm(size=4, cex = 4) +
       labs(x ='Treatment', 
           y = 'Norm. Migration Area') +
-      scale_x_discrete(labels= c("pCIApoD"="pCI \n ApoD")) +
+      scale_x_discrete(labels= c("Sox9MO05mM"="Sox9 MO")) +
       ylim(0,1.25)  +
       geom_hline(yintercept=1, linetype="dashed", color = "red") +
       theme_classic() +
