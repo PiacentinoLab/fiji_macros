@@ -23,9 +23,9 @@ Define experimental parameters and input/output information
 
 ```{r}
 # Define raw data directory
-data_path = 'test_data/'
+data_path = 'csvs/'
 # Define experiment output name
-output_name <- 'Sox9MO_MigrationArea_results.csv'
+output_name <- 'ApoDMO_DR_MigrationArea_results.csv'
 
 # Import modules
 library(dplyr)            # needed for %>%
@@ -63,12 +63,12 @@ Parse out the relevant metadata from the file name and Label columns, then disca
 ```{r}
 df <- df_raw %>% separate(Label, c('Channel', 'ROI'), ":")
 df <- df %>% separate(File, c('Date','Treatment',
-                              'Stains','Embryo','Somites','Mag','Type'), "_")
-#df <- df %>% separate(Treatment, c('Gene', 'Dose'), ";")
+                              'Stains','Embryo','Somites', 'Mag'), "_")
+df <- df %>% separate(Treatment, c('Treatment', 'Dose'), ";")
 
-df <- unite(df, Emb_ID, c('Date','Treatment','Embryo'), sep = '_', remove = FALSE)
-df <- select(df, -c('Mean','Min','Max', 'IntDen', 'RawIntDen',
-                    'Stains','Mag','Type')) # Drop unnecessary cols
+df <- unite(df, Emb_ID, c('Date','Treatment','Dose','Embryo'), sep = '_', remove = FALSE)
+df <- select(df, -c('Channel','Mean', 'IntDen', 'RawIntDen',
+                    'Stains','Mag')) # Drop unnecessary cols
 head(df)
 ```
 
@@ -85,17 +85,27 @@ Analysis steps:
 ```{r}
 # Get rid of unnecessary ROIs and Channels
 data <- df[!(df$ROI=="Background"),]
-data <- data[(data$Channel=="Pax7"),]
 
 # Pivot table
 data <- data %>% pivot_wider(names_from = 'ROI', values_from = 'Area')
 
-# Normalize each value to the mean of the Control dataset
-data['NormCntlArea'] <- data['CntlArea'] / mean(data$CntlArea)
-data['NormExptArea'] <- data['ExptArea'] / mean(data$CntlArea)
+# Loop through conditions (date, dose, treatment, etc)
+# First get a list of conditions to be normalized separate from one another
+dose_list <- unique(data$Dose)
+
+# Initialize new output DF and loop through each condition
+data_final_list = list()
+for (dose_ in dose_list) {
+  data_temp <- data[(data$Dose==dose_),]
+  # Normalize each value to the mean of the Control dataset
+  data_temp['NormCntlArea'] <- data_temp['CntlArea'] / mean(data_temp$CntlArea)
+  data_temp['NormExptArea'] <- data_temp['ExptArea'] / mean(data_temp$CntlArea)
+  data_final_list <- append(data_final_list, list(data_temp))
+}
+data_final <- data_final_list %>% reduce(bind_rows)
 
 # Determine the ratio of Experimental/Control IntDen
-data['Ratio'] <- data['ExptArea'] / data['CntlArea']
+data_final['Ratio'] <- data_final['ExptArea'] / data_final['CntlArea']
 
 head(data)
 ```
@@ -105,7 +115,7 @@ Save out resulting data
 ```{r}
 date <- Sys.Date()
 date <- format(date, format="%Y%m%d")
-write.csv(data, file=paste(date, output_name, sep = "_", collapse = NULL))
+write.csv(data_final, file=paste(date, output_name, sep = "_", collapse = NULL))
 ```
 
 # Plot Data
@@ -116,18 +126,18 @@ Good for experiments with paired data (i.e. bilateral electroporations)
 
 ```{r}
 # Parallel coordinate plot
-p <-ggparcoord(data, columns= 9:10,  showPoints=TRUE, 
+p <-ggparcoord(data_final, columns= 9:10,  showPoints=TRUE, 
       scale='globalminmax',
       groupColumn = 4,
       ) +
       labs(x ='Treatment', 
           y = 'Migration Area \n normalized to control') +
       scale_x_discrete(labels= c("NormCntlArea"="Control MO",
-                                 "NormExptArea"="Sox9 MO")) +
+                                 "NormExptArea"="ApoD MO")) +
       ylim(0,2) +
       theme_classic() +
-      theme(axis.text = element_text(size=10, color = "black")) +
-      theme(legend.position = "none")
+      theme(axis.text = element_text(size=10, color = "black")) 
+      # theme(legend.position = "none")
 p
 ```
 
@@ -137,16 +147,17 @@ Good for experiments with categorical data or comparing ratios
 
 ```{r}
 # Box and whiskers with strip plot for ratios
-q <-ggplot(data, aes(x=Treatment, y=Ratio)) +
+q <-ggplot(data_final, aes(x=Dose, y=Ratio)) +
       geom_boxplot() +
-      geom_beeswarm(size=4, cex = 4) +
+      geom_beeswarm(size=2, cex = 4, 
+              color=data_final$Somites, show.legend = TRUE) +
       labs(x ='Treatment', 
           y = 'Norm. Migration Area') +
-      scale_x_discrete(labels= c("Sox9MO05mM"="Sox9 MO")) +
-      ylim(0,1.25)  +
-      geom_hline(yintercept=1, linetype="dashed", color = "red") +
+      ylim(0,1.75)  +
       theme_classic() +
-      theme(axis.text = element_text(size=10, color = "black"))
-    
+      geom_hline(yintercept=1, linetype="dashed", color = "red") +
+      theme(axis.text = element_text(size=10, color = "black")) + 
+      theme(legend.position = "right")
+     
 q
 ```

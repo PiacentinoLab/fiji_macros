@@ -1,0 +1,164 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: console
+---
+
+# Working on
+
+### *1. Building in statistic framework*
+
+------------------------------------------------------------------------
+
+# Initialization and Import
+
+Define experimental parameters and input/output information
+
+```{r Datapath, output, and modules}
+# Define raw data directory
+data_path = 'csvs/'
+# Define experiment output name
+output_name <- 'Sox10MO_smpd3Intron'
+
+# Import modules
+library(dplyr)            # needed for %>%
+library(tidyverse)
+library(tidyr)             # contains "separate" function
+library(ggplot2)
+library(GGally)
+# install.packages("ggbeeswarm")
+library(ggbeeswarm)
+
+```
+
+Navigate to raw data from Fiji and import the raw measurement files
+
+```{r Import raw files}
+# Loop through files in source data to pull in Fiji measurements
+file_list = list.files(path = data_path)     # Determine files to loop through
+
+for (file_ in file_list) {
+  if (file_ == file_list[1]){   # Pull in first file to initialize df
+    df_raw <- read.csv(file.path(data_path, file_), header=TRUE, row.names=1)
+    df_raw['File'] <- file_
+  }
+  else {                       # Pull in the rest of the files and concatenate
+    temp_data <- read.csv(file.path(data_path, file_), header=TRUE, row.names=1)
+    temp_data['File'] <- file_
+    df_raw <- rbind(df_raw, temp_data)  # Concatenates temp_data with df
+  }
+}
+head(df_raw)
+```
+
+Parse out the relevant metadata from the file name and Label columns, then discard unnecessary columns
+
+```{r Parse metadata from file and label information}
+df <- df_raw %>% separate(Label, c('Channel', 'ROI'), ":")
+df <- df %>% separate(File, c('Date','Treatment',
+                              'Stains','Embryo','Somites', 'Section'), "_")
+df <- df %>% separate(Section, c('Section'))  # This deletes the .csv file extension
+df <- unite(df, Emb_ID, c('Date','Treatment','Embryo'), sep = '_', remove = FALSE)
+df <- unite(df, Sec_ID, c('Date','Treatment','Embryo','Section'), sep = '_', remove = FALSE)
+df <- select(df, -c('Stains')) # Drop unnecessary cols
+head(df)
+```
+
+# Normalize and Analyze
+
+## SMPD3 Intron HCR Integrated Density Fluorescence Analysis
+
+Analysis steps:
+
+1.  Subset df to display only SMPD3 intron HCR values for control and experimental ROIs only
+
+2.  Generate a ratio per section and prepare a df for "per section" plots
+
+3.  Average section ratios and make a new df for "per embryo" plots
+
+```{r Subset and tidy data for "per section" values}
+# Get rid of unnecessary ROIs and Channels
+data_section_intden <- df[!(df$ROI=="Background"),]
+data_section_intden <- data_section_intden[(data_section_intden$Channel == "smpd3_intron"),]
+data_section_intden <- select(data_section_intden, -c('Area', 'Mean', 'RawIntDen')) # Drop unnecessary cols
+
+# Pivot table
+data_section_intden <- data_section_intden %>% pivot_wider(names_from = 'ROI', values_from = 'IntDen')
+
+# Determine the ratio of Experimental/Control IntDen
+data_section_intden['Ratio'] <- data_section_intden['ExptArea'] /     data_section_intden['CntlArea']
+
+print(mean(data_section_intden$Ratio))
+head(data_section_intden)
+```
+
+```{r Subset and tidy data for "per embryo" values}
+data_embryo_intden <- data_section_intden
+data_embryo_intden <- data_embryo_intden %>% group_by(Emb_ID) %>% summarize(Cntl = mean(CntlArea), Expt = mean(ExptArea), Ratio = mean(Ratio))
+
+head(data_embryo_means)
+```
+
+Save out resulting data
+
+```{r}
+date <- Sys.Date()
+date <- format(date, format="%Y%m%d")
+write.csv(data_section_intden, file=paste(date, output_name, 'IntDen_perSection.csv', sep = "_", collapse = NULL))
+write.csv(data_embryo_intden, file=paste(date, output_name, 'IntDen_perEmbryo.csv', sep = "_", collapse = NULL))
+```
+
+## SMPD3 Intron HCR CTCF Analysis
+
+Analysis steps:
+
+1.  Subset df to display only SMPD3 intron HCR values
+
+2.  Calculate CTCF values:
+
+    CTCF = ROI IntDen - (ROI Area \* Background Mean)
+
+3.  Generate a ratio per section and prepare a df for "per section" plots
+
+4.  Average section ratios and make a new df for "per embryo" plots
+
+```{r Subset and tidy data for "per section" values}
+# Get rid of unnecessary ROIs and Channels
+data_section_ctcf <- df[(df$Channel == "smpd3_intron"),]
+# backgrounds <- data_section_ctcf[(data_section_ctcf$ROI =='Background'),]
+# data_section_ctcf <- data_section_ctcf[!(data_section_ctcf$ROI=="Background"),]
+
+data_section_ctcf <- select(data_section_ctcf, -c('RawIntDen')) # Drop unnecessary cols
+
+# Pivot table
+data_section_ctcf <- data_section_ctcf %>% pivot_wider(names_from = 'ROI', values_from = c('IntDen', 'Area', 'Mean'))
+
+data_section_ctcf['CntlCTCF'] <- data_section_ctcf['IntDen_CntlArea'] -  (data_section_ctcf['Area_CntlArea'] * data_section_ctcf['Mean_Background'])
+
+data_section_ctcf['ExptCTCF'] <- data_section_ctcf['IntDen_ExptArea'] - (data_section_ctcf['Area_ExptArea'] * data_section_ctcf['Mean_Background'])
+
+# Determine the ratio of Experimental/Control IntDen
+data_section_ctcf['Ratio'] <- data_section_ctcf['ExptCTCF'] /data_section_ctcf['CntlCTCF']
+
+print(mean(data_section_ctcf$Ratio))
+head(data_section_ctcf)
+```
+
+```{r Subset and tidy data for "per embryo" values}
+data_embryo_ctcf <- data_section_ctcf
+data_embryo_ctcf <- data_embryo_ctcf %>% group_by(Emb_ID) %>% summarize(Cntl = mean(CntlCTCF), Expt = mean(ExptCTCF), Ratio = mean(Ratio))
+
+head(data_embryo_ctcf)
+```
+
+Save out resulting data
+
+```{r}
+date <- Sys.Date()
+date <- format(date, format="%Y%m%d")
+write.csv(data_section_ctcf, file=paste(date, output_name, 'CTCF_perSection.csv', sep = "_", collapse = NULL))
+write.csv(data_embryo_ctcf, file=paste(date, output_name, 'CTCF_perEmbryo.csv', sep = "_", collapse = NULL))
+```
