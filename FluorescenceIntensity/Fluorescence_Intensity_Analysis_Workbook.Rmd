@@ -1,0 +1,156 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: console
+---
+
+# Initialization and Import
+
+Define experimental parameters and input/output information
+
+```{r Datapath, output, and modules}
+# Define raw data directory
+data_path = 'csvs/'
+# Define experiment output name
+output_name <- 'Sox10gRNA_PauseTest'
+
+# Import modules
+library(dplyr)            # needed for %>%
+library(tidyverse)
+library(tidyr)             # contains "separate" function
+library(ggplot2)
+library(GGally)
+# install.packages("ggbeeswarm")
+library(ggbeeswarm)
+
+```
+
+Navigate to raw data from Fiji and import the raw measurement files
+
+```{r Import raw files}
+# Loop through files in source data to pull in Fiji measurements
+file_list = list.files(path = data_path)     # Determine files to loop through
+
+for (file_ in file_list) {
+  if (file_ == file_list[1]){   # Pull in first file to initialize df
+    df_raw <- read.csv(file.path(data_path, file_), header=TRUE, row.names=1)
+    df_raw['File'] <- file_
+  }
+  else {                       # Pull in the rest of the files and concatenate
+    temp_data <- read.csv(file.path(data_path, file_), header=TRUE, row.names=1)
+    temp_data['File'] <- file_
+    df_raw <- rbind(df_raw, temp_data)  # Concatenates temp_data with df
+  }
+}
+head(df_raw)
+```
+
+Parse out the relevant metadata from the file name and Label columns, then discard unnecessary columns
+
+```{r Parse metadata from file and label information}
+df <- df_raw %>% separate(Label, c('Channel', 'ROI'), ":")
+df <- df %>% separate(File, c('Date','Treatment', 'Pause',
+                              'Stains','Embryo','Somites', 'Mag'), "_")
+df <- unite(df, Emb_ID, c('Date','Treatment','Embryo'), 
+            sep = '_', remove = FALSE)
+df <- select(df, -c('RawIntDen','Stains', 'Date'
+                    , 'Treatment', 'Mag')) # Drop unnecessary cols
+head(df)
+```
+
+# Analyze
+
+## Migration Area
+
+```{r Subset dataframe for PAX7}
+# Get rid of unnecessary ROIs and Channels
+data_migration <- df[(df$Channel=="PAX7"),]
+data_migration <- select(data_migration, -c('Mean', 'IntDen')) #Drop these columns
+data_migration <- data_migration %>% pivot_wider(names_from = 'ROI', values_from = 'Area')
+data_migration <- data_migration %>% dplyr::rename('Cntl'='CntlArea', 'Expt'='ExptArea')
+data_migration$NormCntl <-  data_migration$Cntl/mean(data_migration$Cntl)
+data_migration$NormExpt <-  data_migration$Expt/mean(data_migration$Cntl)
+data_migration$Ratio <-  data_migration$Expt/data_migration$Cntl
+```
+
+```{r}
+data <- data_migration
+
+# Parallel coordinate plot
+p <-ggparcoord(data, columns= 8:9,  showPoints=TRUE, 
+      scale='globalminmax',) +
+      labs(x ='Side',
+          y = 'Norm. Migration Area') +
+      ylim(0,2) +
+      theme_classic() +
+      theme(axis.text = element_text(size=10, color = "black")) 
+      # theme(legend.position = "none")
+p
+```
+
+```{r}
+data <- data_migration
+
+# Box and whiskers with strip plot for ratios
+q <-ggplot(data, aes(x=Pause, y=Ratio)) +
+      geom_boxplot() +
+      geom_beeswarm(size=2, cex = 4) +
+      labs(x ='Pause Time', 
+          y = 'Norm. Migration Area') +
+      ylim(0,1.75)  +
+      theme_classic() +
+      geom_hline(yintercept=1, linetype="dashed", color = "red") +
+      theme(axis.text = element_text(size=10, color = "black")) + 
+      theme(legend.position = "right")
+     
+q
+```
+
+## SOX10 Fluorescence
+
+```{r Subset dataframe for PAX7}
+# Get rid of unnecessary ROIs and Channels
+data_sox10 <- df[(df$Channel=="SOX10"),]
+data_sox10 <- select(data_sox10, -c('Area', 'Mean')) #Drop these columns
+data_sox10 <- data_sox10 %>% pivot_wider(names_from = 'ROI', values_from = 'IntDen')
+data_sox10 <- data_sox10 %>% dplyr::rename('Cntl'='CntlArea', 'Expt'='ExptArea')
+data_sox10$NormCntl <-  data_sox10$Cntl/mean(data_sox10$Cntl)
+data_sox10$NormExpt <-  data_sox10$Expt/mean(data_sox10$Cntl)
+data_sox10$Ratio <-  data_sox10$Expt/data_sox10$Cntl
+```
+
+```{r}
+data <- data_sox10
+
+# Parallel coordinate plot
+p <-ggparcoord(data, columns= 8:9,  showPoints=TRUE, 
+      scale='globalminmax',) +
+      labs(x ='Side',
+          y = 'Norm. SOX10 IHC') +
+      ylim(0,2) +
+      theme_classic() +
+      theme(axis.text = element_text(size=10, color = "black")) 
+      # theme(legend.position = "none")
+p
+```
+
+```{r}
+data <- data_sox10
+
+# Box and whiskers with strip plot for ratios
+q <-ggplot(data, aes(x=Pause, y=Ratio)) +
+      geom_boxplot() +
+      geom_beeswarm(size=2, cex = 4) +
+      labs(x ='Pause Time', 
+          y = 'Norm. SOX10 IHC') +
+      ylim(0,1.75)  +
+      theme_classic() +
+      geom_hline(yintercept=1, linetype="dashed", color = "red") +
+      theme(axis.text = element_text(size=10, color = "black")) + 
+      theme(legend.position = "right")
+     
+q
+```
