@@ -1,0 +1,253 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: console
+---
+
+# Initialization and Import
+
+Define experimental parameters and input/output information
+
+```{r}
+# Define experiment output name
+output_name <- 'ApoDMO_MigrationMasks_results.csv'
+
+# Import modules
+library(dplyr)            # needed for %>%
+library(tidyverse)
+library(tidyr)             # contains "separate" function
+library(ggplot2)
+library(GGally)
+library(ggbeeswarm)
+
+```
+
+Navigate to raw data from Fiji and import the raw measurement files
+
+```{r}
+# Set the directory containing the data files
+data_path <- "csvs/"
+
+# Get the list of files in the subdirectory
+file_list <- list.files(path = data_path, recursive = TRUE)
+
+# Initialize empty lists to store data
+NCArea_data <- list()
+HeadArea_data <- list()
+
+# Loop through each file
+for (file in file_list) {
+  # Read the file
+  data <- read.csv(file.path(data_path, file))
+  
+  # Check if the file ends with "_NCArea.csv"
+  if (endsWith(file, "_NCArea.csv")) {
+    # Add a column with the CSV file name
+    data$File <- file
+    NCArea_data[[file]] <- data
+  }
+  # Check if the file ends with "_HeadArea.csv"
+  else if (endsWith(file, "_HeadArea.csv")) {
+    # Add a column with the CSV file name
+    data$File <- file
+    HeadArea_data[[file]] <- data
+  }
+}
+
+# Concatenate the data
+NCArea_combined <- do.call(rbind, NCArea_data)
+HeadArea_combined <- do.call(rbind, HeadArea_data)
+
+# Data cleaning for HeadArea_combined
+HeadArea_combined$Label <- gsub("Mask of A:", "", HeadArea_combined$Label)
+names(HeadArea_combined)[names(HeadArea_combined) == "Label"] <- "EmbryoSide"
+HeadArea_combined <- subset(HeadArea_combined, select = -c(X, Mean, IntDen, RawIntDen))
+HeadArea_combined$ROI_Type <- "Head"
+
+# Data cleaning for NCArea_combined
+NCArea_combined$Slice <- gsub("Mask of ", "", NCArea_combined$Slice)
+names(NCArea_combined)[names(NCArea_combined) == "Slice"] <- "EmbryoSide"
+names(NCArea_combined)[names(NCArea_combined) == "Total.Area"] <- "Area"
+NCArea_combined <- subset(NCArea_combined, select = -c(Count, Average.Size, X.Area, Mean, IntDen))
+NCArea_combined$ROI_Type <- "NC"
+
+# Combine the data frames
+combined_df <- rbind(NCArea_combined, HeadArea_combined)
+```
+
+```{r}
+# Split the "File" column into multiple columns
+combined_df_tidy <- combined_df %>%
+  separate(File, into = c("Date", "Treatment", "Stains", "Embryo", "Somites", "Mag", "Type", "TossMe"), sep = "_") %>%
+  mutate(Treatment = str_replace_all(Treatment, ";", "")) %>%
+  select(-Stains, -Mag, -Type, -TossMe) %>%
+  mutate(Emb_ID = paste(Date, Treatment, Embryo, sep = "_"))
+
+# Group rows based on Emb_ID
+combined_df_tidy <- combined_df_tidy %>%
+  group_by(Emb_ID) %>%
+  ungroup()
+
+# Create pivot table
+pivot_table <- combined_df_tidy %>%
+  pivot_wider(names_from = c(EmbryoSide, ROI_Type), values_from = Area)
+
+# Add new columns storing the results of "Expt_Head"/"Cntl_Head" and "Expt_NC"/"Cntl_NC"
+pivot_table <- pivot_table %>%
+  mutate(
+    `EvsC_Head` = Expt_Head / Cntl_Head,
+    `EvsC_NC` = Expt_NC / Cntl_NC
+  )
+
+# Add new columns for normalization
+pivot_table <- pivot_table %>%
+  mutate(
+    `Cntl_NCoverHead` = Cntl_NC / Cntl_Head,
+    `Expt_NCoverHead` = Expt_NC / Expt_Head
+  )
+
+# Add new column for normalization ratio
+pivot_table <- pivot_table %>%
+  mutate(`EvsC_NCoverHead` = `Expt_NCoverHead` / `Cntl_NCoverHead`)
+
+```
+
+```{r}
+# Calculate mean of Cntl_NC and Cntl_Head
+mean_Cntl_NC <- mean(pivot_table$Cntl_NC, na.rm = TRUE)
+mean_Cntl_Head <- mean(pivot_table$Cntl_Head, na.rm = TRUE)
+mean_Cntl_NCoverHead <- mean(pivot_table$Cntl_NCoverHead, na.rm = TRUE)
+
+# Normalize Expt_NC and Cntl_NC by mean of Cntl_NC
+pivot_table$Norm_Cntl_NC <- pivot_table$Cntl_NC / mean_Cntl_NC
+pivot_table$Norm_Expt_NC <- pivot_table$Expt_NC / mean_Cntl_NC
+
+# Normalize Expt_Head and Cntl_Head by mean of Cntl_Head
+pivot_table$Norm_Cntl_Head <- pivot_table$Cntl_Head / mean_Cntl_Head
+pivot_table$Norm_Expt_Head <- pivot_table$Expt_Head / mean_Cntl_Head
+
+# Normalize Expt_NCoverHead and Cntl_NCoverHead by mean of Cntl_NCoverHead
+pivot_table$Norm_Cntl_NCoverHead <- pivot_table$Cntl_NCoverHead / mean_Cntl_NCoverHead
+pivot_table$Norm_Expt_NCoverHead <- pivot_table$Expt_NCoverHead / mean_Cntl_NCoverHead
+
+# Create a new dataframe with normalized values
+normalized_df <- pivot_table[, c("Treatment", "Date", "Somites", "Embryo", "Norm_Cntl_NC", "Norm_Expt_NC", "Norm_Cntl_Head", "Norm_Expt_Head", "Norm_Cntl_NCoverHead", "Norm_Expt_NCoverHead")]
+
+# Display the first few rows of the new dataframe
+head(normalized_df)
+```
+
+```{r}
+# Define column names
+column_names <- c("Norm_Cntl_NC", "Norm_Expt_NC")
+
+# Find column numbers for the specified column names
+column_numbers <- which(names(pivot_table) %in% column_names)
+
+# Create parallel coordinate plot
+parallel_plot <- ggparcoord(pivot_table,
+                             columns = column_numbers, # Indicate column numbers to compare
+                             groupColumn = "Treatment",
+                             scale = "globalminmax",
+                             showPoints = TRUE,
+                             alphaLines = 0.5) +
+                             ylim(0, 1.5
+                                  )
+
+# Customize plot labels and appearance
+parallel_plot <- parallel_plot +
+  labs(x = "Embryo Side", y = "Normalized Area") + # Remove title
+  theme_minimal() +
+  theme(axis.text = element_text(color = "black"), # Set axis text color to black
+        axis.line = element_line(color = "black"), # Set axis line color to black
+        panel.grid.major = element_blank(), # Remove major gridlines
+        panel.grid.minor = element_blank()) # Remove minor gridlines
+
+# Set point and line color to black
+parallel_plot <- parallel_plot +
+  scale_color_manual(values = "black") + # Set point color to black
+  scale_alpha_manual(values = c(0.5)) + # Set line alpha to 0.5
+  theme(panel.grid.major = element_blank(), # Remove major gridlines
+        panel.grid.minor = element_blank()) # Remove minor gridlines
+
+# Display the plot
+print(parallel_plot)
+
+# Perform two-tailed paired t-test
+t_test_result <- t.test(pivot_table[[column_names[1]]], pivot_table[[column_names[2]]], paired = TRUE)
+
+# Print the t-test result
+print(t_test_result)
+```
+
+```{r}
+# Create box and whiskers plot
+boxplot_data <- data.frame(
+  Value = pivot_table[[column_names[2]]] / pivot_table[[column_names[1]]],
+  Treatment = pivot_table$Treatment
+)
+
+boxplot <- ggplot(boxplot_data, aes(x = Treatment, y = Value)) +
+  geom_boxplot(color = "black", fill = "lightblue", alpha = 1, width = 0.5) +
+  geom_beeswarm(color = "black", alpha = 1, size = 3, cex=7) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red") +  # Add red dashed line at y=1
+  ylim(0, 1.5) +
+  labs(x = "", y = "Norm. NC Area (Expt/Cntl)") +  # Remove x-axis label
+  scale_x_discrete(labels = c("APOD MO")) +  # Set x-axis label to "APOD MO"
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 16, color = "black"),
+    axis.text.y = element_text(size = 16, color = "black"),
+    axis.title.x = element_text(size = 16, color = "black"),
+    axis.title.y = element_text(size = 16, color = "black"),
+    panel.grid.major.x = element_blank(),  # Remove vertical grid lines
+    panel.grid.minor = element_blank()   # Remove minor vertical grid lines
+  )
+
+# Display the box and whiskers plot
+print(boxplot)
+
+# Perform two-tailed paired t-test
+t_test_result <- t.test(pivot_table[[column_names[1]]], pivot_table[[column_names[2]]], paired = TRUE)
+
+# Print the t-test result
+print(t_test_result)
+
+```
+
+```{r}
+# Calculate median value
+median_value <- median(boxplot_data$Value)
+
+# Create violin plot
+violinplot <- ggplot(boxplot_data, aes(x = Treatment, y = Value)) +
+  geom_violin(fill = "skyblue", color = "black", alpha = 0.3, trim = FALSE, draw_quantiles =) +  # Add violin plot
+  geom_beeswarm(color = "black", size = 3) +  # Add beeswarm plot
+  geom_hline(yintercept = median_value, linetype = "solid", color = "black", size = 1, width = 2) +  # Add black line at median value
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red") +  # Add red dashed line at y=1
+  ylim(0, 1.2) +
+  labs(x = "", y = "Norm. NC Area (Expt/Cntl)") +  # Remove x-axis label
+  scale_x_discrete(labels = c("APOD MO")) +  # Set x-axis label to "APOD MO"
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(size = 16, color = "black"),
+    axis.text.y = element_text(size = 16, color = "black"),
+    axis.title.x = element_text(size = 16, color = "black"),
+    axis.title.y = element_text(size = 16, color = "black")
+  )
+
+# Display the violin plot
+print(violinplot)
+
+# Perform two-tailed paired t-test
+t_test_result <- t.test(pivot_table[[column_names[1]]], pivot_table[[column_names[2]]], paired = TRUE)
+
+# Print the t-test result
+print(t_test_result)
+
+
+
+```

@@ -36,16 +36,26 @@ waitForUser("Draw ROI 1 (Experimental Head), then press ok");
 roiManager("Add");
 roiManager("Select",1);
 roiManager("Rename","Expt");
-roiManager("Deselect");
+run("Select None");
 setSlice(nc_channel);
 
 //Filtering, thresholding, and mask
-run("Median...", "radius=2 slice");
+//run("Median...", "radius=2 slice");
+//setOption("ScaleConversions", true);
+//run("8-bit");
+//run("Auto Local Threshold", "method=Bernsen radius=15 parameter_1=0 parameter_2=0 white");
+//run("Select None");
+//run("Analyze Particles...", "size=5-Infinity show=Masks slice");
+//run("Invert LUT");
+
+//Filtering, thresholding, and mask
+run("Median...", "radius=3 slice");
+run("Subtract Background...", "rolling=300 slice");
 setOption("ScaleConversions", true);
 run("8-bit");
-run("Auto Local Threshold", "method=Bernsen radius=15 parameter_1=0 parameter_2=0 white");
+run("Auto Local Threshold", "method=Bernsen radius=5 parameter_1=0 parameter_2=0 white");
 run("Select None");
-run("Analyze Particles...", "size=5-Infinity show=Masks slice");
+run("Analyze Particles...", "size=10-Infinity show=Masks slice");
 run("Invert LUT");
 
 
@@ -53,6 +63,7 @@ run("Invert LUT");
 roiManager("Show All");
 roiManager("Deselect");
 roiManager("Measure");
+
 
 //Save out Measurements as csv
 waitForUser("Choose a directory to save measurements, then press ok");
@@ -75,3 +86,5 @@ roi_dir = getDirectory("Choose a directory to save ROI sets.");
 roiManager("Save", roi_dir+name+".zip");
 run("Flatten");
 saveAs("JPEG", roi_dir+name+"_MaskROIs.jpg");
+
+run("Close All");

@@ -15,7 +15,7 @@ for(i=0;i<indirlist.length;i++){
 	
 	// NOTE: Imaging embryos on the LSM880 results in them being reflected 
 	// with experimental side on left and control on right. Correcting that here.
-//	run("Flip Vertically", "stack");
+	run("Flip Vertically", "stack");
 
 	rename("A");
 	run("Split Channels");
@@ -23,25 +23,26 @@ for(i=0;i<indirlist.length;i++){
 	//export each channel
 	selectWindow("C1-A");
 	run("Grays");
-	run("Enhance Contrast", "saturated=0.10");
-	saveAs("JPEG", outdir+name+"_BF");
+	//run("Enhance Contrast", "saturated=0.10");
+	saveAs("JPEG", outdir+name+"_pCIG");
 	selectWindow("C2-A");
 	run("Grays");
 	run("Enhance Contrast", "saturated=0.10");
 	saveAs("JPEG", outdir+name+"_SOX10");
 	selectWindow("C3-A");
 	run("Grays");
-	run("Enhance Contrast", "saturated=0.10");
-	saveAs("JPEG", outdir+name+"_H2BRFP");
-	selectWindow("C4-A");
-	run("Grays");
-	run("Enhance Contrast", "saturated=0.10");
-	saveAs("JPEG", outdir+name+"_PAX7");
-	selectWindow("C5-A");
-	run("Grays");
-	run("Enhance Contrast", "saturated=0.10");
-//	setMinAndMax(50, 15000);
+	//run("Enhance Contrast", "saturated=0.10");
 	saveAs("JPEG", outdir+name+"_DAPI");
+	setMinAndMax(50, 45000);
+//	selectWindow("C4-A");
+//	run("Grays");
+//	run("Enhance Contrast", "saturated=0.10");
+//	saveAs("JPEG", outdir+name+"_TFAP2AEGFP");
+//	selectWindow("C5-A");
+//	run("Grays");
+//	run("Enhance Contrast", "saturated=0.10");
+////	setMinAndMax(50, 15000);
+//	saveAs("JPEG", outdir+name+"_DAPI");
 
 
 //merge channels
@@ -49,9 +50,10 @@ for(i=0;i<indirlist.length;i++){
 	//c4 = gray, c5 = cyan, c6 = magenta, 
 	//c7 = yellow
 	
-	run("Merge Channels...", "c6=C3-A c5=C1-A c7=C2-A create");
-
+	run("Merge Channels...", "c6=C2-A c5=C3-A create");
 	run("RGB Color");
+	run("Scale Bar...", "width=200 height=200 horizontal bold");
+	run("Flatten");
 	saveAs("JPEG", outdir+name+"_composite");
 	run("Close All");
 

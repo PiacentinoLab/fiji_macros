@@ -39,7 +39,7 @@ roiManager("Rename","Cntl");
 run("Split Channels");
 
 //Analyze cell counts - Channel 1
-selectWindow("C1-A");
+selectWindow("C2-A");
 resetMinAndMax();
 //setMinAndMax(75, 150);
 run("Median...", "radius=3 slice");
@@ -76,7 +76,7 @@ selectWindow("RAW");
 close();
 
 //Analyze cell counts - Channel 2
-selectWindow("C3-A");
+selectWindow("C4-A");
 resetMinAndMax();
 //setMinAndMax(75, 150);
 run("Median...", "radius=3 slice");
