@@ -10,7 +10,7 @@ for(i=0;i<indirlist.length;i++){
 	print("Processing: " + name);
 
 //	run("Rotate... ", "angle=180 grid=1 interpolation=Bilinear stack");
-	run("Z Project...", "projection=[Max Intensity]");
+//	run("Z Project...", "projection=[Max Intensity]");
 //	run("Median...", "radius=1 stack");
 	
 	// NOTE: Imaging embryos on the LSM880 results in them being reflected 
@@ -24,16 +24,18 @@ for(i=0;i<indirlist.length;i++){
 	selectWindow("C1-A");
 	run("Grays");
 	//run("Enhance Contrast", "saturated=0.10");
-	saveAs("JPEG", outdir+name+"_pCIG");
+	setMinAndMax(200, 10000);
+	saveAs("JPEG", outdir+name+"_TMR");
 	selectWindow("C2-A");
 	run("Grays");
-	run("Enhance Contrast", "saturated=0.10");
-	saveAs("JPEG", outdir+name+"_SOX10");
+	//run("Enhance Contrast", "saturated=0.10");
+	setMinAndMax(2000, 20000);
+	saveAs("JPEG", outdir+name+"_Citrine");
 	selectWindow("C3-A");
 	run("Grays");
 	//run("Enhance Contrast", "saturated=0.10");
-	saveAs("JPEG", outdir+name+"_DAPI");
-	setMinAndMax(50, 45000);
+	setMinAndMax(5000, 25000);
+	saveAs("JPEG", outdir+name+"_DIC");
 //	selectWindow("C4-A");
 //	run("Grays");
 //	run("Enhance Contrast", "saturated=0.10");
@@ -50,7 +52,7 @@ for(i=0;i<indirlist.length;i++){
 	//c4 = gray, c5 = cyan, c6 = magenta, 
 	//c7 = yellow
 	
-	run("Merge Channels...", "c6=C2-A c5=C3-A create");
+	run("Merge Channels...", "c6=C1-A c4=C3-A create");
 	run("RGB Color");
 	run("Scale Bar...", "width=200 height=200 horizontal bold");
 	run("Flatten");
