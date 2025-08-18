@@ -31,7 +31,7 @@ for(i=0;i<indirlist.length;i++){
 //	run("Merge Channels...", "c5=C3-A c6=C4-A create keep");
 //	run("Flatten");
 //	run("Images to Stack", "name=Stack title=[] use");
-	run("Make Montage...", "columns=3 rows=2 scale=0.5 border=2");
+	run("Make Montage...", "columns=2 rows=3 scale=0.75 border=2");
 	saveAs("JPEG", outdir+name+"_montage");
 	run("Close All");
 }
