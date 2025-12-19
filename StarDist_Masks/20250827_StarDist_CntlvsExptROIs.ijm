@@ -27,24 +27,29 @@ for (i = 0; i < list.length; i++) {
         // Clear out ROI Manager
         roiManager("reset");
 
-//        // --- Manual ROI drawing ---
-//        // Prompt for Control ROI
-//        waitForUser("Draw the Control ROI using the freehand tool, then click OK.");
-//        roiManager("Add");
-//        roiManager("Select", 0);
-//        roiManager("Rename", "Control");
-//        roiManager("Show All");
-//
-//        // Prompt for Experimental ROI
-//        waitForUser("Draw the Experimental ROI using the freehand tool, then click OK.");
-//        roiManager("Add");
-//        roiManager("Select", 1);
-//        roiManager("Rename", "Experimental");
-//        roiManager("Deselect");
-//        
-//        // Save out ROIs
-//        roiManager("Save", outdir + name + "_areas.zip");
-//        // --- End manual ROI section ---
+        // --- Manual ROI drawing ---
+        // Prompt for Control ROI
+        waitForUser("Draw the Control ROI using the freehand tool, then click OK.");
+        roiManager("Add");
+        roiManager("Select", 0);
+        roiManager("Rename", "Control");
+
+        // Prompt for Experimental ROI
+        waitForUser("Draw the Experimental ROI using the freehand tool, then click OK.");
+        roiManager("Add");
+        roiManager("Select", 1);
+        roiManager("Rename", "Experimental");
+		roiManager("Deselect");
+        
+        // Save out ROIs
+        selectWindow("A");
+		roiManager("Show All with labels");
+        roiManager("Save", outdir + name + "_areas.zip");
+		if (isOpen("ROI Manager")) { 
+	         selectWindow("ROI Manager"); 
+	         run("Close"); 
+	    } 
+        // --- End manual ROI section ---
         
 		// Hard-coded ROI names
 		roiNames = newArray(2);
@@ -106,6 +111,10 @@ for (i = 0; i < list.length; i++) {
 			if (isOpen("A")) close("A");
 			if (isOpen("Mask")) close("Mask");
 		}
-		
-	close("*");		    
+	// --- Cleanup
+	if (isOpen("NeuralCrestChannel")){selectWindow("NeuralCrestChannel"); run("Close");}
+	
+	if (isOpen("ROI Manager")) { 
+	         selectWindow("ROI Manager"); run("Close");} 
+    }       
 }
